@@ -93,11 +93,22 @@ for i in np.arange(0,101):
 			alt.Y('value:Q',scale=alt.Scale(domain=(0, 100)))
 		)
 
-		c3 = alt.Chart(df1).mark_circle().encode(
+		selection = alt.selection_point(on='mouseover', nearest=True)
+		color = alt.condition(
+			selection,
+			alt.Color('id:N').title("Robot ID").legend(orient="bottom"),
+			alt.value('lightgray')
+		)
+		base3 = alt.Chart(df1).mark_circle().encode(
 			alt.X('time:Q'),
 			alt.Y('value:Q'),
-			alt.Color('id:N').title("Robot ID").legend(orient="bottom")
+			color=color
+			#tooltip=['time', 'value', "id"]
+		).add_selection(
+			selection
 		)
+		line = base3.transform_regression('time', 'value', method="poly").mark_line()
+		c3 = base3 + line
 
 		# write it to the screen
 		#predVis.write(c1)
