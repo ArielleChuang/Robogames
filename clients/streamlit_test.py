@@ -47,7 +47,7 @@ with col2:
 	container4 = st.container()	
 
 	with container3:
-		st.subheader("Viz 3")
+		st.subheader("Number Generator")
 		viz3 = st.empty()
 
 	with container4:
@@ -93,10 +93,16 @@ for i in np.arange(0,101):
 			alt.Y('value:Q',scale=alt.Scale(domain=(0, 100)))
 		)
 
+		c3 = alt.Chart(df1).mark_circle().encode(
+			alt.X('time:Q'),
+			alt.Y('value:Q'),
+			alt.Color('id:N').title("Robot ID").legend(orient="bottom")
+		)
+
 		# write it to the screen
 		#predVis.write(c1)
 		viz1.write(c1)
-		viz3.write(c1)
+		viz3.write(c3)
 
 	# get the parts
 	df2 = pd.DataFrame(game.getAllPartHints())
