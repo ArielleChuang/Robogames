@@ -6,7 +6,7 @@ import pandas as pd
 import Robogame as rg
 
 # Main content
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Robogame", layout="wide")
 st.title('Robogame Dashboard')
 
 # let's create two "spots" in the streamlit view for our charts
@@ -18,9 +18,11 @@ status = st.empty()
 side = st.sidebar
 with side:
 	st.header('Streaming Data')
-	st.sidebar.write("test!")
-	st.text_input('Robot ID')
-	st.button('Search', type='primary')
+	# st.sidebar.write("test!")
+	robotID = st.text_input('Robot ID')
+	# st.button('Bid', type='primary')
+	if robotID:
+		st.write("You entered: ", robotID)
 
 # create the game, and mark it as ready
 game = rg.Robogame("bob")
@@ -54,8 +56,10 @@ with col2:
 		st.subheader("Viz 4")
 		viz4 = st.empty()
 
+df = []
 with col3:
 	st.subheader('Team Status')
+	team_table = st.table(df)
 
 # wait for both players to be ready
 while(True):	
@@ -81,6 +85,14 @@ for i in np.arange(0,101):
 
 	# update the hints
 	game.getHints()
+
+	# update robo info
+	robots = game.getRobotInfo()
+	team_counts = robots['winningTeam'].value_counts()
+	team_counts = pd.DataFrame(team_counts)
+	team_counts = team_counts.sort_values(by='count', ascending=False)
+	team_table.write(team_counts)
+	
 
 	# create a dataframe for the time prediction hints
 	df1 = pd.DataFrame(game.getAllPredictionHints())
