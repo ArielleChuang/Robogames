@@ -4,6 +4,12 @@ import numpy as np
 import altair as alt
 import pandas as pd
 import Robogame as rg
+import networkx as nx 
+import time, json
+import matplotlib.pyplot as plt
+# from graphviz import Digraph
+import io
+from PIL import Image
 
 # Main content
 st.set_page_config(page_title="Robogame", layout="wide")
@@ -28,6 +34,20 @@ with side:
 game = rg.Robogame("bob")
 game.setReady()
 
+
+#Family Tree
+# family = game.getTree()
+# fam_net = nx.tree_graph(family)
+# graph = Digraph(format='png')
+# for node in fam_net.nodes:
+#     graph.node(str(node))
+# for edge in fam_net.edges:
+#     graph.edge(str(edge[0]), str(edge[1]))
+# # Render the Graphviz Digraph to a PNG image
+# png_data = graph.pipe(format='png')
+# image = Image.open(io.BytesIO(png_data))
+# family = st.image(image, use_column_width=True, width=800)
+
 # grid layout
 col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
@@ -37,7 +57,13 @@ with col1:
 
 	with container1:
 		st.subheader("Viz 1")
-		viz1 = st.empty()
+		
+		#Social Network 
+		network = game.getNetwork()
+		social_net = nx.node_link_graph(network)
+		fig, ax = plt.subplots()
+		nx.draw_kamada_kawai(social_net, with_labels=True)
+		viz1 = st.pyplot(fig)
 
 	with container2:
 		st.subheader("Viz 2")
@@ -78,6 +104,7 @@ while(True):
 
 # run 100 times
 for i in np.arange(0,101):
+
 	# sleep 6 seconds
 	for t in np.arange(0,6):
 		status.write("Seconds to next hack: " + str(6-t))
@@ -86,13 +113,56 @@ for i in np.arange(0,101):
 	# update the hints
 	game.getHints()
 
-	# update robo info
+	## Team Status
 	robots = game.getRobotInfo()
 	team_counts = robots['winningTeam'].value_counts()
 	team_counts = pd.DataFrame(team_counts)
 	team_counts = team_counts.sort_values(by='count', ascending=False)
 	team_table.write(team_counts)
-	
+
+	## Productivity heatmap
+
+	part_hints=game.getAllPartHints()
+        
+    # # Put id, productivity, parts into {}
+	df = pd.DataFrame()
+	for hint in part_hints:
+		column_name = hint['column']
+		id_value = hint['id']
+		value = hint['value']
+		if id_value not in df.index:
+			new_row = pd.Series(name=id_value, dtype='object')
+			new_row[column_name] = value
+			df = pd.concat([df, new_row.to_frame().T])
+	df = df.reset_index().rename(columns={'index': 'id'})
+	D = pd.merge(robots[['id', 'Productivity']], df, on='id')
+    
+	# Clean up df without id
+	melted_data = pd.melt(D, id_vars=['id'], var_name='Parts', value_name='value')
+	wide_data = melted_data.pivot(index=['id'], columns='Parts', values='value').reset_index()
+	df = pd.DataFrame(wide_data.to_dict(orient='list'))
+	new_df = df.drop('id', axis=1)
+
+	# Create correlation matrix
+	correlation_matrix = new_df.corr(numeric_only=True).stack().reset_index(name='correlation').rename(columns={'level_0': 'x', 'level_1': 'y'})
+
+	# Sort the values to position 'productivity' at the top of y-axis and x-axis
+	sort_order = ['Productivity']+ sorted(df.columns.drop('Productivity'))
+	correlation_matrix['x'] = pd.Categorical(correlation_matrix['x'], categories=sort_order, ordered=True)
+	correlation_matrix['y'] = pd.Categorical(correlation_matrix['y'], categories=sort_order, ordered=True)
+
+	chart = alt.Chart(correlation_matrix).mark_rect().encode(
+    	x=alt.X('x:O', sort=sort_order, title='Parts'), y=alt.Y('y:O', sort=sort_order, title='Parts'), color='correlation:Q'
+	)
+
+	text = alt.Chart(correlation_matrix).mark_text(baseline='middle').encode(
+    	x=alt.X('x:O', sort=sort_order), y=alt.Y('y:O', sort=sort_order), text=alt.Text('correlation:Q', format='.2f'), color=alt.condition(
+        alt.datum.correlation > 0.5, alt.value('white'), alt.value('black'))
+	)
+
+	heatmap = (chart + text).properties(
+		width=700, height=700
+	)
 
 	# create a dataframe for the time prediction hints
 	df1 = pd.DataFrame(game.getAllPredictionHints())
@@ -105,6 +175,8 @@ for i in np.arange(0,101):
 			alt.Y('value:Q',scale=alt.Scale(domain=(0, 100)))
 		)
 
+
+		## Robot Num Generator
 		selection = alt.selection_point(on='mouseover', nearest=True)
 		color = alt.condition(
 			selection,
@@ -120,12 +192,13 @@ for i in np.arange(0,101):
 			selection
 		)
 		line = base3.transform_regression('time', 'value', method="poly").mark_line()
-		c3 = base3 + line
+		num = base3 + line
 
 		# write it to the screen
 		#predVis.write(c1)
-		viz1.write(c1)
-		viz3.write(c3)
+		#viz1.write()
+		viz3.write(num)
+
 
 	# get the parts
 	df2 = pd.DataFrame(game.getAllPartHints())
@@ -146,4 +219,4 @@ for i in np.arange(0,101):
 		)
 		# partVis.write(c2)
 		viz2.write(c2)
-		viz4.write(c2)
+		viz4.write(heatmap)
