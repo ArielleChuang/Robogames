@@ -62,6 +62,22 @@ with col1:
 	with container2:
 		st.subheader("Viz 2")
 		viz2 = st.empty()
+	with container5: 
+		st.subheader("Viz5")
+		viz5 = st.empty()
+		#Family Tree
+		family = game.getTree()
+		fam_net = nx.tree_graph(family)
+		graph = Digraph(format='png')
+		for node in fam_net.nodes:
+		    graph.node(str(node))
+		for edge in fam_net.edges:
+		    graph.edge(str(edge[0]), str(edge[1]))
+		# Render the Graphviz Digraph to a PNG image
+		png_data = graph.pipe(format='png')
+		image = Image.open(io.BytesIO(png_data))
+		viz5 = st.image(image, use_column_width=True, width=800)
+
 
 with col2:
 	
