@@ -56,14 +56,8 @@ with col1:
 	container2 = st.container()	
 
 	with container1:
-		st.subheader("Viz 1")
-		
-		#Social Network 
-		network = game.getNetwork()
-		social_net = nx.node_link_graph(network)
-		fig, ax = plt.subplots()
-		nx.draw_kamada_kawai(social_net, with_labels=True)
-		viz1 = st.pyplot(fig)
+		st.subheader("Social Network")
+		viz1 = st.empty()
 
 	with container2:
 		st.subheader("Viz 2")
