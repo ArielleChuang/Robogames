@@ -7,7 +7,7 @@ import Robogame as rg
 import networkx as nx 
 import time, json
 import matplotlib.pyplot as plt
-# from graphviz import Digraph
+from graphviz import Digraph
 import io
 from PIL import Image
 
