@@ -104,6 +104,22 @@ while(True):
 
 # run 100 times
 for i in np.arange(0,101):
+	
+	robots = game.getRobotInfo()
+	network = game.getNetwork()
+	social_net = nx.node_link_graph(network)
+	
+	# Get the node winner values and colors
+	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in social_net.nodes}
+	node_colors = {1: 'green', 2: 'red', -2: 'blue'}
+	colors = [node_colors.get(node_winner_values.get(node, 0), 'gray') for node in social_net.nodes]
+	
+	# Draw the network graph
+	fig, ax = plt.subplots()
+	nx.draw_kamada_kawai(social_net, with_labels=True, node_color=colors, ax=ax)
+	
+	# Update the visualization in container1
+	viz1.pyplot(fig)
 
 	# sleep 6 seconds
 	for t in np.arange(0,6):
