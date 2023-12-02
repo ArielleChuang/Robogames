@@ -53,7 +53,8 @@ col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
 	
 	container1 = st.container()
-	container2 = st.container()	
+	container2 = st.container()
+	container5 = st.container()
 
 	with container1:
 		st.subheader("Social Network")
@@ -62,6 +63,7 @@ with col1:
 	with container2:
 		st.subheader("Viz 2")
 		viz2 = st.empty()
+		
 	with container5: 
 		st.subheader("Viz5")
 		viz5 = st.empty()
