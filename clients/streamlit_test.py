@@ -7,7 +7,7 @@ import Robogame as rg
 import networkx as nx 
 import time, json
 import matplotlib.pyplot as plt
-# from graphviz import Digraph
+from graphviz import Digraph
 import io
 from PIL import Image
 
@@ -53,21 +53,36 @@ col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
 	
 	container1 = st.container()
-	container2 = st.container()	
+	container2 = st.container()
+	container5 = st.container()
 
 	with container1:
-		st.subheader("Viz 1")
-		
-		#Social Network 
-		network = game.getNetwork()
-		social_net = nx.node_link_graph(network)
-		fig, ax = plt.subplots()
-		nx.draw_kamada_kawai(social_net, with_labels=True)
-		viz1 = st.pyplot(fig)
+		st.subheader("Social Network")
+		viz1 = st.empty()
 
 	with container2:
 		st.subheader("Viz 2")
 		viz2 = st.empty()
+		
+	with container5: 
+		st.subheader("Viz5")
+		viz5 = st.empty()
+
+		#Family Tree
+		family = game.getTree()
+		fam_net = nx.tree_graph(family)
+		graph = Digraph(format='png')
+
+		for node in fam_net.nodes:
+			graph.node(str(node))
+		for edge in fam_net.edges:
+		    graph.edge(str(edge[0]), str(edge[1]))
+			
+		# Render the Graphviz Digraph to a PNG image
+		png_data = graph.pipe(format='png')
+		image = Image.open(io.BytesIO(png_data))
+		viz5 = st.image(image, use_column_width=True, width=800)
+
 
 with col2:
 	
@@ -75,7 +90,7 @@ with col2:
 	container4 = st.container()	
 
 	with container3:
-		st.subheader("Viz 3")
+		st.subheader("Number Generator")
 		viz3 = st.empty()
 
 	with container4:
@@ -104,6 +119,22 @@ while(True):
 
 # run 100 times
 for i in np.arange(0,101):
+	
+	robots = game.getRobotInfo()
+	network = game.getNetwork()
+	social_net = nx.node_link_graph(network)
+	
+	# Get the node winner values and colors
+	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in social_net.nodes}
+	node_colors = {1: 'green', 2: 'red', -2: 'blue'}
+	colors = [node_colors.get(node_winner_values.get(node, 0), 'gray') for node in social_net.nodes]
+	
+	# Draw the network graph
+	fig, ax = plt.subplots()
+	nx.draw_kamada_kawai(social_net, with_labels=True, node_color=colors, ax=ax)
+	
+	# Update the visualization in container1
+	viz1.pyplot(fig)
 
 	# sleep 6 seconds
 	for t in np.arange(0,6):
