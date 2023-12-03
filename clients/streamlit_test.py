@@ -19,7 +19,7 @@ st.title('Robogame Dashboard')
 status = st.empty()
 
 # create the game, and mark it as ready
-game = rg.Robogame("bgklt") # our team's secret
+game = rg.Robogame("bob") # our team's secret
 game.setReady()
 
 ## Set bet
@@ -233,20 +233,21 @@ for i in np.arange(0,101):
 	)
 
 	heatmap = (chart + text).properties(
-		width=700, height=700
+		width=500, height=500
 	)
 
 	## Robot Num Generator
-
-	# create a dataframe for the time prediction hints
+# create a dataframe for the time prediction hints
 	df1 = pd.DataFrame(game.getAllPredictionHints())
 
 	# if it's not empty, let's get going
 	if (len(df1) > 0):
-
-		selection = alt.selection_point(on='mouseover', nearest=True)
+		
+		nearest = alt.selection(type='single', on='mouseover', fields=['time', 'value'])
+		#selection = alt.selection_point(on='mouseover', fields=['time', 'value'])
+		
 		color = alt.condition(
-			selection,
+			nearest,
 			alt.Color('id:N').title("Robot ID").legend(orient="bottom"),
 			alt.value('lightgray')
 		)
@@ -256,9 +257,38 @@ for i in np.arange(0,101):
 			color=color
 			#tooltip=['time', 'value', "id"]
 		).add_selection(
-			selection
+			nearest
+		).properties(
+			width=500, height=500
+		) 
+		selectors = alt.Chart().mark_point().encode(
+			x='time:Q',
+			y='value:Q',
+			opacity=alt.value(0),
+		).add_selection(
+			nearest
 		)
-		line = base3.transform_regression('time', 'value', method="poly").mark_line()
+		if searchID:
+			base3 = base3.transform_filter(
+        		alt.datum.id == searchID
+			)
+		line = base3.transform_regression('time', 'value', method="poly").mark_line().encode(
+			alt.Color(legend=None)
+		).interactive()
+		points = line.mark_point().encode(
+    		opacity=alt.condition(nearest, alt.value(1), alt.value(0))
+		)
+		vrules = alt.Chart().mark_rule(color='gray').encode(
+			x='time:Q',
+		).transform_filter(
+			nearest
+		)
+		hrules = alt.Chart().mark_rule(color='gray').encode(
+			y='value:Q',
+		).transform_filter(
+			nearest
+		)
+		#lines = line + selectors + points + vrules + hrules
 		num = base3 + line
 
 		# write it to the screen
