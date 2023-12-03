@@ -7,7 +7,7 @@ import Robogame as rg
 import networkx as nx 
 import time, json
 import matplotlib.pyplot as plt
-from graphviz import Digraph
+# from graphviz import Digraph
 import io
 from PIL import Image
 
@@ -17,36 +17,83 @@ st.title('Robogame Dashboard')
 
 # let's create two "spots" in the streamlit view for our charts
 status = st.empty()
-#predVis = st.empty()
-#partVis = st.empty()
+
+# create the game, and mark it as ready
+game = rg.Robogame("bgklt") # our team's secret
+game.setReady()
+
+## Set bet
+# Save or read allBets to a text file to avoid losing our input
+def save_to_file(allBets, file_path='allBets.txt'):
+    with open(file_path, 'w') as file:
+        for robot_id, value in allBets.items():
+            file.write(f"{robot_id}: {value}\n")
+
+def read_from_file(file_path='allBets.txt'):
+	with open(file_path, 'r') as file:
+		for line in file:
+			parts = line.strip().split(':')
+			robot_id = parts[0].strip()
+			value = int(parts[1].strip())
+			allBets[robot_id] = value
+
+def reset_bids():
+    allBets = {}
+    for i in np.arange(0, 100):
+        allBets[int(i)] = int(50)  # initially bet 50
+    game.setBets(allBets)
+    save_to_file(allBets)
+    st.success('All bids have been reset.')
+
+allBets = {}
+try:
+	read_from_file()
+except:
+	for i in np.arange(0,100):
+		allBets[int(i)] = int(50) # initially bet 50
+
+game.setBets(allBets)
+save_to_file(allBets)
 
 # Sidebar on the left
 side = st.sidebar
 with side:
-	st.header('Streaming Data')
-	# st.sidebar.write("test!")
-	robotID = st.text_input('Robot ID')
-	# st.button('Bid', type='primary')
-	if robotID:
-		st.write("You entered: ", robotID)
+	## Search
+	with st.form("search-form"):
+		st.subheader('Search Robot')
+		searchID = st.number_input('Robot ID', value = None, step=1)
+		searchButton = st.form_submit_button("Search")
+		if searchID and searchButton:
+			st.write("Search for: ", searchID)
+	## Bid
+	with st.form("bid-form"):
+		st.subheader('Bid')
+		bidID = st.number_input('Bid For Robot ID', value = None, step=1)
+		bidVal = st.number_input('Value', value = None, step=1)
+		bidButton = st.form_submit_button("Bid")
+		if bidButton:
+			st.write("You set bet for: ", bidID, " with ", bidVal)
+			allBets[bidID] = bidVal
+			game.setBets(allBets)
+			save_to_file(allBets)
+	
+	st.subheader('Our bids')
+	bidResetButton = st.button("Reset All Bids")
+	if bidResetButton:
+		st.warning('Are you sure you want to reset all bids to 50?', icon="⚠️")
+			# Using columns for better layout
+		buttonCol1, buttonCol2 = st.columns(2)
 
-# create the game, and mark it as ready
-game = rg.Robogame("bob")
-game.setReady()
+		with buttonCol1:
+			yesResetButton = st.button("Reset", key="yes_reset", help="Click to reset", on_click=lambda: reset_bids(), type="primary")
+		
+		with buttonCol2:
+			noResetButton = st.button("Cancel", key="cancel_reset", help="Click to cancel")
 
-
-#Family Tree
-# family = game.getTree()
-# fam_net = nx.tree_graph(family)
-# graph = Digraph(format='png')
-# for node in fam_net.nodes:
-#     graph.node(str(node))
-# for edge in fam_net.edges:
-#     graph.edge(str(edge[0]), str(edge[1]))
-# # Render the Graphviz Digraph to a PNG image
-# png_data = graph.pipe(format='png')
-# image = Image.open(io.BytesIO(png_data))
-# family = st.image(image, use_column_width=True, width=800)
+	read_from_file()
+	df = pd.DataFrame({'Robot ID': list(allBets.keys()), 'Value': list(allBets.values())})
+	df.set_index('Robot ID', inplace=True)
+	bid = st.table(df)
 
 # grid layout
 col1, col2, col3 = st.columns([2, 2, 1])
@@ -61,28 +108,22 @@ with col1:
 		viz1 = st.empty()
 
 	with container2:
-		st.subheader("Viz 2")
+		st.subheader("Family Tree")
 		viz2 = st.empty()
+
+		# #Family Tree
+		# family = game.getTree()
+		# fam_net = nx.tree_graph(family)
+		# graph = Digraph(format='png')
 		
-	with container5: 
-		st.subheader("Viz5")
-		viz5 = st.empty()
-
-		#Family Tree
-		family = game.getTree()
-		fam_net = nx.tree_graph(family)
-		graph = Digraph(format='png')
-
-		for node in fam_net.nodes:
-			graph.node(str(node))
-		for edge in fam_net.edges:
-		    graph.edge(str(edge[0]), str(edge[1]))
-			
-		# Render the Graphviz Digraph to a PNG image
-		png_data = graph.pipe(format='png')
-		image = Image.open(io.BytesIO(png_data))
-		viz5 = st.image(image, use_column_width=True, width=800)
-
+		# for node in fam_net.nodes:
+		# 	graph.node(str(node))
+		# for edge in fam_net.edges:
+		# 	graph.edge(str(edge[0]), str(edge[1]))
+        # # Render the Graphviz Digraph to a PNG image
+		# png_data = graph.pipe(format='png')
+		# image = Image.open(io.BytesIO(png_data))
+		# viz5 = st.image(image, use_column_width=True, width=800)
 
 with col2:
 	
@@ -94,7 +135,7 @@ with col2:
 		viz3 = st.empty()
 
 	with container4:
-		st.subheader("Viz 4")
+		st.subheader("Productivity Heatmap")
 		viz4 = st.empty()
 
 df = []
@@ -120,6 +161,7 @@ while(True):
 # run 100 times
 for i in np.arange(0,101):
 	
+	## Friendship Network
 	robots = game.getRobotInfo()
 	network = game.getNetwork()
 	social_net = nx.node_link_graph(network)
@@ -145,7 +187,6 @@ for i in np.arange(0,101):
 	game.getHints()
 
 	## Team Status
-	robots = game.getRobotInfo()
 	team_counts = robots['winningTeam'].value_counts()
 	team_counts = pd.DataFrame(team_counts)
 	team_counts = team_counts.sort_values(by='count', ascending=False)
@@ -195,19 +236,14 @@ for i in np.arange(0,101):
 		width=700, height=700
 	)
 
+	## Robot Num Generator
+
 	# create a dataframe for the time prediction hints
 	df1 = pd.DataFrame(game.getAllPredictionHints())
 
 	# if it's not empty, let's get going
 	if (len(df1) > 0):
-		# create a plot for the time predictions (ignore which robot it came from)
-		c1 = alt.Chart(df1).mark_circle().encode(
-			alt.X('time:Q',scale=alt.Scale(domain=(0, 100))),
-			alt.Y('value:Q',scale=alt.Scale(domain=(0, 100)))
-		)
 
-
-		## Robot Num Generator
 		selection = alt.selection_point(on='mouseover', nearest=True)
 		color = alt.condition(
 			selection,
@@ -226,8 +262,6 @@ for i in np.arange(0,101):
 		num = base3 + line
 
 		# write it to the screen
-		#predVis.write(c1)
-		#viz1.write()
 		viz3.write(num)
 
 
@@ -249,5 +283,5 @@ for i in np.arange(0,101):
 			alt.Y('value:Q',scale=alt.Scale(domain=(-100, 100)))
 		)
 		# partVis.write(c2)
-		viz2.write(c2)
+		viz2.write("Family tree")
 		viz4.write(heatmap)
