@@ -243,7 +243,7 @@ for i in np.arange(0,101):
 	# if it's not empty, let's get going
 	if (len(df1) > 0):
 		
-		nearest = alt.selection(type='single', on='mouseover', fields=['time', 'value'])
+		nearest = alt.selection_point(on='mouseover', fields=['time', 'value'])
 		#selection = alt.selection_point(on='mouseover', fields=['time', 'value'])
 		
 		color = alt.condition(
@@ -256,40 +256,53 @@ for i in np.arange(0,101):
 			alt.Y('value:Q'),
 			color=color
 			#tooltip=['time', 'value', "id"]
-		).add_selection(
+		).add_params(
 			nearest
 		).properties(
 			width=500, height=500
 		) 
-		selectors = alt.Chart().mark_point().encode(
-			x='time:Q',
-			y='value:Q',
-			opacity=alt.value(0),
-		).add_selection(
-			nearest
-		)
+		#selectors = alt.Chart().mark_point().encode(
+		#	x='time:Q',
+		#	y='value:Q',
+		#	opacity=alt.value(0),
+		#).add_params(
+		#	nearest
+		#)
 		if searchID:
 			base3 = base3.transform_filter(
         		alt.datum.id == searchID
 			)
-		line = base3.transform_regression('time', 'value', method="poly").mark_line().encode(
-			alt.Color(legend=None)
-		).interactive()
-		points = line.mark_point().encode(
-    		opacity=alt.condition(nearest, alt.value(1), alt.value(0))
-		)
-		vrules = alt.Chart().mark_rule(color='gray').encode(
-			x='time:Q',
-		).transform_filter(
-			nearest
-		)
-		hrules = alt.Chart().mark_rule(color='gray').encode(
-			y='value:Q',
-		).transform_filter(
-			nearest
-		)
+		#line = base3.transform_regression('time', 'value', method="poly").mark_line().encode(
+		#	alt.Color(legend=None)
+		#).interactive()
+		degree_list = [3, 5]
+
+		polynomial_fit = [
+			base3.transform_regression(
+				"time", "value", method="poly", order=order, as_=["time", str(order)]
+			)
+			.mark_line()
+			.transform_fold([str(order)], as_=["degree", "value"])
+			.encode(alt.Color("degree:N", legend=None)).interactive()
+			for order in degree_list
+		]
+
+		num = alt.layer(base3, *polynomial_fit)
+		#points = line.mark_point().encode(
+    	#	opacity=alt.condition(nearest, alt.value(1), alt.value(0))
+		#)
+		#vrules = alt.Chart().mark_rule(color='gray').encode(
+		#	x='time:Q',
+		#).transform_filter(
+		#	nearest
+		#)
+		#hrules = alt.Chart().mark_rule(color='gray').encode(
+		#	y='value:Q',
+		#).transform_filter(
+		#	nearest
+		#)
 		#lines = line + selectors + points + vrules + hrules
-		num = base3 + line
+		#num = base3 + line
 
 		# write it to the screen
 		viz3.write(num)
