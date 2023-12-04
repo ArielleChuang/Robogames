@@ -268,26 +268,30 @@ for i in np.arange(0,101):
 		#).add_params(
 		#	nearest
 		#)
+		degree_list = [3, 5]
 		if searchID:
 			base3 = base3.transform_filter(
         		alt.datum.id == searchID
 			)
-		#line = base3.transform_regression('time', 'value', method="poly").mark_line().encode(
-		#	alt.Color(legend=None)
-		#).interactive()
-		degree_list = [3, 5]
+		line = base3.transform_regression('time', 'value', method="poly").mark_line().encode(
+			alt.Color(legend=None)
+		).interactive()
+		line2 = base3.transform_regression('time', 'value', method="poly", order=5).mark_line(color="black").encode(
+			alt.Color(legend=None)
+		).interactive()
+		
 
-		polynomial_fit = [
-			base3.transform_regression(
-				"time", "value", method="poly", order=order, as_=["time", str(order)]
-			)
-			.mark_line()
-			.transform_fold([str(order)], as_=["degree", "value"])
-			.encode(alt.Color("degree:N", legend=None)).interactive()
-			for order in degree_list
-		]
+		#polynomial_fit = [
+		#	base3.transform_regression(
+		#		"time", "value", method="poly", order=order, as_=["time", str(order)]
+		#	)
+		#	.mark_line()
+		#	.transform_fold([str(order)], as_=["degree", "value"])
+		#	.encode(alt.Color("degree:N", legend=None)).interactive()
+		#	for order in degree_list
+		#]
 
-		num = alt.layer(base3, *polynomial_fit)
+		num = alt.layer(base3, line, line2)#*polynomial_fit)
 		#points = line.mark_point().encode(
     	#	opacity=alt.condition(nearest, alt.value(1), alt.value(0))
 		#)
