@@ -55,14 +55,6 @@ except:
 game.setBets(allBets)
 save_to_file(allBets)
 
-@st.cache
-def load_family_tree():
-    family_data = game.getTree()
-    fam_net = nx.tree_graph(family_data)
-    return fam_net.copy()
-
-# Load the family tree once (cached)
-fam_net = load_family_tree()
 
 # Sidebar on the left
 side = st.sidebar
@@ -120,33 +112,6 @@ with col1:
 		st.subheader("Family Tree")
 		viz2 = st.empty()
 
-		# Input box for the user to enter the node they want to search
-		search_node = st.text_input("Enter a node to search:", "")
-		pos = nx.spring_layout(fam_net)
-		nx.draw_networkx(fam_net, pos=pos, with_labels=True, 
-		node_color='skyblue', node_size=500, font_size=10, font_color='black', 
-		font_weight='bold', edge_color='gray', linewidths=0.5)
-
-   
-		try:
-		search_node_id = int(search_node)
-		        if search_node_id in fam_net.nodes:
-		            # Find parent node
-		            parent = list(fam_net.predecessors(search_node_id))
-		            if parent:
-		                # Find descendants of the parent node
-		                descendants = nx.descendants(fam_net, parent[0])
-		
-		                # Draw the parent node and its descendants in red
-		                nx.draw_networkx_nodes(fam_net, pos=pos, 
-		nodelist=[parent[0]] + list(descendants), node_color='red', node_size=700, 
-		alpha=0.8)
-		    except ValueError:
-		        # Handle the case where the input is not a valid integer
-		        pass
-		
-		    # Display the matplotlib plot using st.pyplot
-		    viz6.pyplot(plt)
 
 with col2:
 	
