@@ -19,7 +19,7 @@ st.title('Robogame Dashboard')
 status = st.empty()
 
 # create the game, and mark it as ready
-game = rg.Robogame("bob") # our team's secret
+game = rg.Robogame("match12",server='roboviz.games', port=5000 ) # our team's secret
 game.setReady()
 
 ## Set bet

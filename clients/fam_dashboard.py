@@ -19,7 +19,7 @@ st.title('Family Network')
 
 
 # create the game, and mark it as ready
-game = rg.Robogame("bob")
+game = rg.Robogame("match12",server='roboviz.games', port=5000)
 game.setReady()
 
 # # # Checking JSON file for getTree()
@@ -35,31 +35,31 @@ game.setReady()
 
 col1, col2 = st.columns(2)
 
-with col1:
-        st.subheader('Network Image')
-        viz7 = st.empty()
-        family = game.getTree()
-        fam_net = nx.tree_graph(family) 
+# with col1:
+#         st.subheader('Network Image')
+#         viz7 = st.empty()
+#         family = game.getTree()
+#         fam_net = nx.tree_graph(family) 
 
-        # Create a Digraph object
-        graph = Digraph(format='png')
+#         # Create a Digraph object
+#         graph = Digraph(format='png')
 
-        # Add nodes to the graph
-        for node in fam_net.nodes:
-            graph.node(str(node))
+#         # Add nodes to the graph
+#         for node in fam_net.nodes:
+#             graph.node(str(node))
 
-        # Add edges to the graph
-        for edge in fam_net.edges:
-            graph.edge(str(edge[0]), str(edge[1]))
+#         # Add edges to the graph
+#         for edge in fam_net.edges:
+#             graph.edge(str(edge[0]), str(edge[1]))
 
-        # Generate PNG image from the graph
-        png_data = graph.pipe(format='png')
+#         # Generate PNG image from the graph
+#         png_data = graph.pipe(format='png')
 
-        # Open the image using PIL
-        image = Image.open(io.BytesIO(png_data))
+#         # Open the image using PIL
+#         image = Image.open(io.BytesIO(png_data))
 
-        # Display the image in the Streamlit app
-        viz5 = st.image(image, use_column_width=True, width=800)
+#         # Display the image in the Streamlit app
+#         viz5 = st.image(image, use_column_width=True, width=800)
         
 
 @st.cache
