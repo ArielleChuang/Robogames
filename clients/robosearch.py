@@ -30,7 +30,7 @@ with col1:
 
     fam_net = nx.tree_graph(family)
 
-    @st.cache
+    @st.cache_data
     def load_family_tree():
         family_data = game.getTree()
         fam_net = nx.tree_graph(family_data)
