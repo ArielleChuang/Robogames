@@ -73,7 +73,7 @@ alpha=0.8)
 
 
 with col2:
-    st.subheader('Productivity')
+    st.subheader('Positive Productivity')
 
     # Create an empty placeholder for the visualization
     viz7 = st.empty()

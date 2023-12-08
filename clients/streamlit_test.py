@@ -19,7 +19,7 @@ st.title('Robogame Dashboard')
 status = st.empty()
 
 # create the game, and mark it as ready
-game = rg.Robogame("match12",server='roboviz.games', port=5000 ) # our team's secret
+game = rg.Robogame("bob") # our team's secret
 game.setReady()
 
 ## Set bet
@@ -123,7 +123,7 @@ with col2:
 		viz3 = st.empty()
 
 	with container4:
-		st.subheader("Productivity Heatmap")
+		st.subheader("Productivity Dataframe")
 		viz4 = st.empty()
 
 df = []
@@ -167,7 +167,7 @@ for i in np.arange(0,101):
 	viz1.pyplot(fig)
 
 	# sleep 6 seconds
-	for t in np.arange(0,6):
+	for t in np.arange(0,4):
 		status.write("Seconds to next hack: " + str(6-t))
 		time.sleep(1)
 
@@ -176,53 +176,64 @@ for i in np.arange(0,101):
 
 	## Team Status
 	team_counts = robots['winningTeam'].value_counts()
-	team_counts = pd.DataFrame(team_counts)
+	team_counts = pd.DataFrame(team_counts, columns=['count'])
 	team_counts = team_counts.sort_values(by='count', ascending=False)
 	team_table.write(team_counts)
 
-	## Productivity heatmap
+	## Productivity dataframe
 
 	part_hints=game.getAllPartHints()
         
-    # # Put id, productivity, parts into {}
+    # # Put id, productivity, parts into {}s
 	df = pd.DataFrame()
 	for hint in part_hints:
 		column_name = hint['column']
 		id_value = hint['id']
 		value = hint['value']
+		initial_data = {'id': [], 'Productivity': []}
+		for col in df:
+			initial_data[col] = [0] * len(part_hints)
 		if id_value not in df.index:
 			new_row = pd.Series(name=id_value, dtype='object')
 			new_row[column_name] = value
 			df = pd.concat([df, new_row.to_frame().T])
 	df = df.reset_index().rename(columns={'index': 'id'})
 	D = pd.merge(robots[['id', 'Productivity']], df, on='id')
-    
-	# Clean up df without id
-	melted_data = pd.melt(D, id_vars=['id'], var_name='Parts', value_name='value')
-	wide_data = melted_data.pivot(index=['id'], columns='Parts', values='value').reset_index()
-	df = pd.DataFrame(wide_data.to_dict(orient='list'))
-	new_df = df.drop('id', axis=1)
+	D.fillna(0, inplace=True)
+	new_df = pd.DataFrame()
+	try:
+		corr_S = D['Sonoreceptors'].corr(D['Productivity'])
+		corr_ATC = D['AutoTerrain Tread Count'].corr(D['Productivity'])
+		corr_IS = D['InfoCore Size'].corr(D['Productivity'])
+		corr_ABL = D['Astrogation Buffer Length'].corr(D['Productivity'])
+		corr_PS = D['Polarity Sinks'].corr(D['Productivity'])
+		corr_NM = pd.to_numeric(D['Nanochip Model'], errors='coerce').corr(D['Productivity'])
+		corr_APM = pd.to_numeric(D['Axial Piston Model'], errors='coerce').corr(D['Productivity'])
+		corr_CUB = D['Cranial Uplink Bandwidth'].corr(D['Productivity'])
+		corr_AVM = pd.to_numeric(D['Arakyd Vocabulator Model'], errors='coerce').corr(D['Productivity'])
+		corr_RMHP = D['Repulsorlift Motor HP'].corr(D['Productivity'])
 
-	# Create correlation matrix
-	correlation_matrix = new_df.corr(numeric_only=True).stack().reset_index(name='correlation').rename(columns={'level_0': 'x', 'level_1': 'y'})
+		correlation_dict = {
+    		'Sonoreceptors': corr_S,
+    		'AutoTerrain Tread Count': corr_ATC,
+    		'InfoCore Size': corr_IS,
+    		'Astrogation Buffer Length': corr_ABL,
+    		'Polarity Sinks': corr_PS,
+    		'Nanochip Model': corr_NM,
+    		'Axial Piston Model': corr_APM,
+    		'Cranial Uplink Bandwidth': corr_CUB,
+    		'Arakyd Vocabulator Model': corr_AVM,
+    		'Repulsorlift Motor HP': corr_RMHP
+		}
 
-	# Sort the values to position 'productivity' at the top of y-axis and x-axis
-	sort_order = ['Productivity']+ sorted(df.columns.drop('Productivity'))
-	correlation_matrix['x'] = pd.Categorical(correlation_matrix['x'], categories=sort_order, ordered=True)
-	correlation_matrix['y'] = pd.Categorical(correlation_matrix['y'], categories=sort_order, ordered=True)
+		sorted_corr_columns = sorted(correlation_dict, key=correlation_dict.get, reverse=True)
+		max_1_column, max_2_column = sorted_corr_columns[0], sorted_corr_columns[1] if len(sorted_corr_columns) >= 2 else ()
+		new_df = D[['id', 'Productivity', max_1_column, max_2_column]]
+		new_df = new_df.sort_values(by=['Productivity'], ascending=False)    
 
-	chart = alt.Chart(correlation_matrix).mark_rect().encode(
-    	x=alt.X('x:O', sort=sort_order, title='Parts'), y=alt.Y('y:O', sort=sort_order, title='Parts'), color='correlation:Q'
-	)
+	except:
+			new_df = pd.DataFrame(data=["Not Enough Data"], columns=[""])
 
-	text = alt.Chart(correlation_matrix).mark_text(baseline='middle').encode(
-    	x=alt.X('x:O', sort=sort_order), y=alt.Y('y:O', sort=sort_order), text=alt.Text('correlation:Q', format='.2f'), color=alt.condition(
-        alt.datum.correlation > 0.5, alt.value('white'), alt.value('black'))
-	)
-
-	heatmap = (chart + text).properties(
-		width=500, height=500
-	)
 
 	## Robot Num Generator
 # create a dataframe for the time prediction hints
@@ -319,6 +330,6 @@ for i in np.arange(0,101):
 		)
 		# partVis.write(c2)
 		viz2.write("Family tree")
-		viz4.write(heatmap)
+		viz4.write(new_df)
 
 
