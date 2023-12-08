@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 # from graphviz import Digraph
 import io
 from PIL import Image
+from pyvis.network import Network
+import streamlit.components.v1 as components
+from stvis import pv_static
 
 # Main content
 st.set_page_config(page_title="Robogame", layout="wide")
@@ -19,7 +22,12 @@ st.title('Robogame Dashboard')
 status = st.empty()
 
 # create the game, and mark it as ready
+<<<<<<< Updated upstream
 game = rg.Robogame("bgklt") # our team's secret
+=======
+# game = rg.Robogame("match12") # our team's secret
+game = rg.Robogame("match12", server="roboviz.games", port=5000)
+>>>>>>> Stashed changes
 game.setReady()
 
 ## Set bet
@@ -157,11 +165,10 @@ while(True):
 	status.write("waiting to launch... game will start in " + str(int(timetogo)))
 	time.sleep(1) # sleep 1 second at a time, wait for the game to start
 
-
 # run 100 times
 for i in np.arange(0,101):
 	
-	## Friendship Network
+	# Friendship Network
 	robots = game.getRobotInfo()
 	network = game.getNetwork()
 	social_net = nx.node_link_graph(network)
@@ -178,8 +185,32 @@ for i in np.arange(0,101):
 	# Update the visualization in container1
 	viz1.pyplot(fig)
 
+	# network = game.getNetwork()
+	# robots = game.getRobotInfo()
+
+	# links = network['links']
+	# df = pd.DataFrame(links, columns=['source', 'target'])
+	# G = nx.from_pandas_edgelist(df, source='source', target='target')
+	# net = Network(notebook=False, height='300px', width='300px',heading='')
+
+	# node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in G.nodes}
+	# # node_colors = {1: '#f38375', 2: '#8fb8ed', -2: '#686963'}
+	# node_colors = {1: 'green', 2: 'red', -2: 'blue'}
+
+	# nodes_list = list(G.nodes)
+
+	# for node in G.nodes:
+	# 	net.add_node(node, label=str(node), color=node_colors[node_winner_values[node]])
+
+	# net.from_nx(G)
+	# pv_static(net)
+
+	# viz1.write(net)
+	# st.pyplot(net.show(notebook=False))
+	# viz1.write(net.show('network.html'))
+
 	# sleep 6 seconds
-	for t in np.arange(0,6):
+	for t in np.arange(0,4):
 		status.write("Seconds to next hack: " + str(6-t))
 		time.sleep(1)
 
@@ -188,53 +219,59 @@ for i in np.arange(0,101):
 
 	## Team Status
 	team_counts = robots['winningTeam'].value_counts()
-	team_counts = pd.DataFrame(team_counts)
+	team_counts = pd.DataFrame(team_counts, columns=['count'])
 	team_counts = team_counts.sort_values(by='count', ascending=False)
 	team_table.write(team_counts)
 
-	## Productivity heatmap
+	# ## Productivity heatmap
 
-	part_hints=game.getAllPartHints()
+	# part_hints=game.getAllPartHints()
         
     # # Put id, productivity, parts into {}
-	df = pd.DataFrame()
-	for hint in part_hints:
-		column_name = hint['column']
-		id_value = hint['id']
-		value = hint['value']
-		if id_value not in df.index:
-			new_row = pd.Series(name=id_value, dtype='object')
-			new_row[column_name] = value
-			df = pd.concat([df, new_row.to_frame().T])
-	df = df.reset_index().rename(columns={'index': 'id'})
-	D = pd.merge(robots[['id', 'Productivity']], df, on='id')
+	# df = pd.DataFrame()
+	# for hint in part_hints:
+	# 	column_name = hint['column']
+	# 	id_value = hint['id']
+	# 	value = hint['value']
+	# 	if id_value not in df.index:
+	# 		new_row = pd.Series(name=id_value, dtype='object')
+	# 		new_row[column_name] = value
+	# 		df = pd.concat([df, new_row.to_frame().T])
+	# df = df.reset_index().rename(columns={'index': 'id'})
+	# D = pd.merge(robots[['id', 'Productivity']], df, on='id')
     
-	# Clean up df without id
-	melted_data = pd.melt(D, id_vars=['id'], var_name='Parts', value_name='value')
-	wide_data = melted_data.pivot(index=['id'], columns='Parts', values='value').reset_index()
-	df = pd.DataFrame(wide_data.to_dict(orient='list'))
-	new_df = df.drop('id', axis=1)
+	# # Clean up df without id
+	# melted_data = pd.melt(D, id_vars=['id'], var_name='Parts', value_name='value')
+	# wide_data = melted_data.pivot(index=['id'], columns='Parts', values='value').reset_index()
+	# df = pd.DataFrame(wide_data.to_dict(orient='list'))
+	# new_df = df.drop('id', axis=1)
 
-	# Create correlation matrix
-	correlation_matrix = new_df.corr(numeric_only=True).stack().reset_index(name='correlation').rename(columns={'level_0': 'x', 'level_1': 'y'})
+	# # Create correlation matrix
+	# correlation_matrix = new_df.corr(numeric_only=True).stack().reset_index(name='correlation').rename(columns={'level_0': 'x', 'level_1': 'y'})
 
-	# Sort the values to position 'productivity' at the top of y-axis and x-axis
-	sort_order = ['Productivity']+ sorted(df.columns.drop('Productivity'))
-	correlation_matrix['x'] = pd.Categorical(correlation_matrix['x'], categories=sort_order, ordered=True)
-	correlation_matrix['y'] = pd.Categorical(correlation_matrix['y'], categories=sort_order, ordered=True)
+	# # Sort the values to position 'productivity' at the top of y-axis and x-axis
+	# sort_order = ['Productivity']+ sorted(df.columns.drop('Productivity'))
+	# correlation_matrix['x'] = pd.Categorical(correlation_matrix['x'], categories=sort_order, ordered=True)
+	# correlation_matrix['y'] = pd.Categorical(correlation_matrix['y'], categories=sort_order, ordered=True)
 
-	chart = alt.Chart(correlation_matrix).mark_rect().encode(
-    	x=alt.X('x:O', sort=sort_order, title='Parts'), y=alt.Y('y:O', sort=sort_order, title='Parts'), color='correlation:Q'
-	)
+	# chart = alt.Chart(correlation_matrix).mark_rect().encode(
+    # 	x=alt.X('x:O', sort=sort_order, title='Parts'), y=alt.Y('y:O', sort=sort_order, title='Parts'), color='correlation:Q'
+	# )
 
-	text = alt.Chart(correlation_matrix).mark_text(baseline='middle').encode(
-    	x=alt.X('x:O', sort=sort_order), y=alt.Y('y:O', sort=sort_order), text=alt.Text('correlation:Q', format='.2f'), color=alt.condition(
-        alt.datum.correlation > 0.5, alt.value('white'), alt.value('black'))
-	)
+	# text = alt.Chart(correlation_matrix).mark_text(baseline='middle').encode(
+    # 	x=alt.X('x:O', sort=sort_order), y=alt.Y('y:O', sort=sort_order), text=alt.Text('correlation:Q', format='.2f'), color=alt.condition(
+    #     alt.datum.correlation > 0.5, alt.value('white'), alt.value('black'))
+	# )
 
+<<<<<<< Updated upstream
 	heatmap = (chart + text).properties(
 		width=700, height=700
 	)
+=======
+	# heatmap = (chart + text).properties(
+	# 	width=500, height=500
+	# )
+>>>>>>> Stashed changes
 
 	## Robot Num Generator
 
@@ -284,4 +321,4 @@ for i in np.arange(0,101):
 		)
 		# partVis.write(c2)
 		viz2.write("Family tree")
-		viz4.write(heatmap)
+		viz4.write(c2)
