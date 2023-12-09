@@ -1,5 +1,5 @@
 import streamlit as st
-import time, json
+import time
 import numpy as np
 import altair as alt
 import pandas as pd
@@ -7,9 +7,6 @@ import Robogame as rg
 import networkx as nx 
 import time, json
 import matplotlib.pyplot as plt
-# from graphviz import Digraph
-import io
-from PIL import Image
 from pyvis.network import Network
 from streamlit.components.v1 import html as components_html
 from stvis import pv_static
@@ -99,52 +96,23 @@ with side:
 	df.set_index('Robot ID', inplace=True)
 	bid = st.table(df)
 
-# grid layout
-col1, col2, col3 = st.columns([2, 2, 1])
+# # grid layout
+col1, col2 = st.columns([3,1])
 with col1:
-	
 	container1 = st.container()
 	container2 = st.container()
-	container5 = st.container()
-
 	with container1:
-		st.subheader("Social Network")
+		st.subheader("Number Generator")
 		viz1 = st.empty()
 
 	with container2:
-		st.subheader("Family Tree")
+		st.subheader("Social Network")
+		st.write("⚫️ Grey: Unassigned 🔴 Red: Team1 🔵 Blue: Team2")
 		viz2 = st.empty()
 
-		# #Family Tree
-		# family = game.getTree()
-		# fam_net = nx.tree_graph(family)
-		# graph = Digraph(format='png')
-		
-		# for node in fam_net.nodes:
-		# 	graph.node(str(node))
-		# for edge in fam_net.edges:
-		# 	graph.edge(str(edge[0]), str(edge[1]))
-        # # Render the Graphviz Digraph to a PNG image
-		# png_data = graph.pipe(format='png')
-		# image = Image.open(io.BytesIO(png_data))
-		# viz5 = st.image(image, use_column_width=True, width=800)
-
-with col2:
-	
-	container3 = st.container()
-	container4 = st.container()	
-
-	with container3:
-		st.subheader("Number Generator")
-		viz3 = st.empty()
-
-	with container4:
-		st.subheader("Productivity Heatmap")
-		viz4 = st.empty()
-
 df = []
-with col3:
-	st.subheader('Team Status')
+with col2:
+	st.subheader("Team Status")
 	team_table = st.table(df)
 
 # wait for both players to be ready
@@ -163,57 +131,52 @@ while(True):
 
 # run 100 times
 for i in np.arange(0,101):
-	
-	# Friendship Network
+
 	robots = game.getRobotInfo()
 	network = game.getNetwork()
-	social_net = nx.node_link_graph(network)
 	
-	# Get the node winner values and colors
-	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in social_net.nodes}
-	node_colors = {1: 'green', 2: 'red', -2: 'blue'}
-	colors = [node_colors.get(node_winner_values.get(node, 0), 'gray') for node in social_net.nodes]
+	## Friendship Network
 	
-	# Draw the network graph
-	fig, ax = plt.subplots()
-	nx.draw_kamada_kawai(social_net, with_labels=True, node_color=colors, ax=ax)
+	# initialize network
+	links = network['links']
+	df = pd.DataFrame(links, columns=['source', 'target'])
+	G = nx.from_pandas_edgelist(df, source='source', target='target')
+	nodes_list = list(G.nodes)
+	net = Network(notebook = True)
+
+	# identify winners - for color
+	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in G.nodes}
+	node_colors = {1: '#f38375', 2: '#8fb8ed', -2: '#686963'} # Team 1: #f38375 (red), Team 2: #8fb8ed (blue), Unassigned: #686963 (grey)
+
+	# count number of friends - for size
+	count_source = df.groupby('source')['target'].count().reset_index(name='count_source')
+	count_target = df.groupby('target')['source'].count().reset_index(name='count_target')
+	friends_counts = pd.merge(count_source, count_target, how='outer', left_on='source', right_on='target')
+	friends_counts = friends_counts.fillna(0)
+	friends_counts['counts'] = friends_counts['count_source'] + friends_counts['count_target']
+	friends_counts = pd.DataFrame(friends_counts)
+	normalized_counts = friends_counts['counts'] / friends_counts['counts'].max()
+	rounded_counts = (normalized_counts * 100).round().astype(int)
+
+	# Add color abd size onto each node
+	for node in G.nodes:
+		source_matches = friends_counts[friends_counts['source'] == node]
+		if not source_matches.empty:
+			row = source_matches.iloc[0]
+			net.add_node(node, label=str(node), color=node_colors[node_winner_values[node]], size=int(rounded_counts[row.name]))
+	net.from_nx(G)
+
+	# save and read the network
+	html_path = "network.html"
+	net.write_html(html_path)
+	HtmlFile = open(html_path, 'r', encoding='utf-8')
+	source_code = HtmlFile.read() 
+
+	# update the network every 30 sec
+	if i % 5 == 0:
+		viz2.empty()
+		viz2 = components_html(source_code, width=1000, height=500, scrolling=False)
 	
-	# Update the visualization in container1
-	viz1.pyplot(fig)
-
-	# network = game.getNetwork()
-	# robots = game.getRobotInfo()
-
-	# links = network['links']
-	# df = pd.DataFrame(links, columns=['source', 'target'])
-	# G = nx.from_pandas_edgelist(df, source='source', target='target')
-
-	# net = Network(notebook = True)
-
-	# node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in G.nodes}
-	# node_colors = {1: '#f38375', 2: '#8fb8ed', -2: '#686963'} # Team 1: #f38375 (red), Team 2: #8fb8ed (blue), Unassigned: #686963 (grey)
-
-	# nodes_list = list(G.nodes)
-
-	# for node in G.nodes:
-	# 	net.add_node(node, label=str(node), color=node_colors[node_winner_values[node]])
-
-	# net.from_nx(G)
-	# html_path = "network.html"
-	# net.write_html(html_path)
-
-	# HtmlFile = open(html_path, 'r', encoding='utf-8')
-	# source_code = HtmlFile.read() 
-    
-    # # Update viz1 every 1 minute
-	# if i % 10 == 0:
-	# 	viz1.empty()
-	# 	viz1 = components_html(source_code, width=800, height=800, scrolling=True)
-
-	# friends_counts = df.groupby('source')['target'].count()
-	# friends_counts = pd.DataFrame(friends_counts)
-
-	# update the hints
 	game.getHints()
 
 	## Team Status
@@ -221,50 +184,6 @@ for i in np.arange(0,101):
 	team_counts = pd.DataFrame(team_counts, columns=['count'])
 	team_counts = team_counts.sort_values(by='count', ascending=False)
 	team_table.write(team_counts)
-
-	# ## Productivity heatmap
-
-	# part_hints=game.getAllPartHints()
-        
-    # # Put id, productivity, parts into {}
-	# df = pd.DataFrame()
-	# for hint in part_hints:
-	# 	column_name = hint['column']
-	# 	id_value = hint['id']
-	# 	value = hint['value']
-	# 	if id_value not in df.index:
-	# 		new_row = pd.Series(name=id_value, dtype='object')
-	# 		new_row[column_name] = value
-	# 		df = pd.concat([df, new_row.to_frame().T])
-	# df = df.reset_index().rename(columns={'index': 'id'})
-	# D = pd.merge(robots[['id', 'Productivity']], df, on='id')
-    
-	# # Clean up df without id
-	# melted_data = pd.melt(D, id_vars=['id'], var_name='Parts', value_name='value')
-	# wide_data = melted_data.pivot(index=['id'], columns='Parts', values='value').reset_index()
-	# df = pd.DataFrame(wide_data.to_dict(orient='list'))
-	# new_df = df.drop('id', axis=1)
-
-	# # Create correlation matrix
-	# correlation_matrix = new_df.corr(numeric_only=True).stack().reset_index(name='correlation').rename(columns={'level_0': 'x', 'level_1': 'y'})
-
-	# # Sort the values to position 'productivity' at the top of y-axis and x-axis
-	# sort_order = ['Productivity']+ sorted(df.columns.drop('Productivity'))
-	# correlation_matrix['x'] = pd.Categorical(correlation_matrix['x'], categories=sort_order, ordered=True)
-	# correlation_matrix['y'] = pd.Categorical(correlation_matrix['y'], categories=sort_order, ordered=True)
-
-	# chart = alt.Chart(correlation_matrix).mark_rect().encode(
-    # 	x=alt.X('x:O', sort=sort_order, title='Parts'), y=alt.Y('y:O', sort=sort_order, title='Parts'), color='correlation:Q'
-	# )
-
-	# text = alt.Chart(correlation_matrix).mark_text(baseline='middle').encode(
-    # 	x=alt.X('x:O', sort=sort_order), y=alt.Y('y:O', sort=sort_order), text=alt.Text('correlation:Q', format='.2f'), color=alt.condition(
-    #     alt.datum.correlation > 0.5, alt.value('white'), alt.value('black'))
-	# )
-
-	# heatmap = (chart + text).properties(
-	# 	width=700, height=700
-	# )
 
 	## Robot Num Generator
 
@@ -290,7 +209,7 @@ for i in np.arange(0,101):
 		).add_params(
 			nearest
 		).properties(
-			width=500, height=500
+			width=1000, height=500
 		) 
 		#selectors = alt.Chart().mark_point().encode(
 		#	x='time:Q',
@@ -340,30 +259,8 @@ for i in np.arange(0,101):
 		#num = base3 + line
 
 		# write it to the screen
-		viz3.write(num)
+		viz1.write(num)
 
-
-	# get the parts
-	df2 = pd.DataFrame(game.getAllPartHints())
-
-	# we'll want only the quantitative parts for this
-	# the nominal parts should go in another plot
-	quantProps = ['Astrogation Buffer Length','InfoCore Size',
-		'AutoTerrain Tread Count','Polarity Sinks',
-		'Cranial Uplink Bandwidth','Repulsorlift Motor HP',
-		'Sonoreceptors']
-
-	# if it's not empty, let's get going
-	if (len(df2) > 0):
-		df2 = df2[df2['column'].isin(quantProps)]
-		c2 = alt.Chart(df2).mark_circle().encode(
-			alt.X('column:N'),
-			alt.Y('value:Q',scale=alt.Scale(domain=(-100, 100)))
-		)
-		# partVis.write(c2)
-		viz2.write("Family tree")
-		viz4.write(c2)
-	
 	# sleep 6 seconds
 	for t in np.arange(0,4):
 		status.write("Seconds to next hack: " + str(6-t))
