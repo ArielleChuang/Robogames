@@ -282,27 +282,27 @@ for i in np.arange(0,101):
 		# write it to the screen
 		viz1.write(num)
 
-		## Productivity dataframe
-		part_hints=game.getAllPartHints()
+	## Productivity dataframe
+	part_hints=game.getAllPartHints()
 				
-		# # Put id, productivity, parts into {}s
-		df = pd.DataFrame()
-		for hint in part_hints:
-			column_name = hint['column']
-			id_value = hint['id']
-			value = hint['value']
-			initial_data = {'id': [], 'Productivity': []}
+	# # Put id, productivity, parts into {}s
+	df = pd.DataFrame()
+	for hint in part_hints:
+		column_name = hint['column']
+		id_value = hint['id']
+		value = hint['value']
+		initial_data = {'id': [], 'Productivity': []}
 		for col in df:
 			initial_data[col] = [0] * len(part_hints)
 		if id_value not in df.index:
 			new_row = pd.Series(name=id_value, dtype='object')
-		new_row[column_name] = value
-		df = pd.concat([df, new_row.to_frame().T])
-		df = df.reset_index().rename(columns={'index': 'id'})
-		D = pd.merge(robots[['id', 'Productivity']], df, on='id')
-		D.fillna(0, inplace=True)
-		new_df = pd.DataFrame()
-		try:
+			new_row[column_name] = value
+			df = pd.concat([df, new_row.to_frame().T])
+	df = df.reset_index().rename(columns={'index': 'id'})
+	D = pd.merge(robots[['id', 'Productivity']], df, on='id')
+	D.fillna(0, inplace=True)
+	new_df = pd.DataFrame()
+	try:
 			corr_S = D['Sonoreceptors'].corr(D['Productivity'])
 			corr_ATC = D['AutoTerrain Tread Count'].corr(D['Productivity'])
 			corr_IS = D['InfoCore Size'].corr(D['Productivity'])
@@ -333,9 +333,9 @@ for i in np.arange(0,101):
 			new_df = new_df.sort_values(by=['Productivity'], ascending=False) 
 			productivity_table.write(new_df)   
 
-		except:
-			new_df = pd.DataFrame(data=["Not Enough Data"], columns=[""])
-			productivity_table.write(new_df) 
+	except:
+		new_df = pd.DataFrame(data=["Not Enough Data"], columns=[""])
+		productivity_table.write(new_df) 
 
 	# sleep 6 seconds
 	for t in np.arange(0,6):
