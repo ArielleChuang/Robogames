@@ -129,6 +129,8 @@ while(True):
 	status.write("waiting to launch... game will start in " + str(int(timetogo)))
 	time.sleep(1) # sleep 1 second at a time, wait for the game to start
 
+df_store = pd.DataFrame(game.getAllPredictionHints())
+
 # run 100 times
 for i in np.arange(0,101):
 
@@ -189,9 +191,12 @@ for i in np.arange(0,101):
 
 	# create a dataframe for the time prediction hints
 	df1 = pd.DataFrame(game.getAllPredictionHints())
+	df_store = pd.concat([df_store, df1]).drop_duplicates(subset=['time', 'id', 'value'])
+	timenow = game.getGameTime()['curtime']
+	df_store['curtime'] = timenow
 
 	# if it's not empty, let's get going
-	if (len(df1) > 0):
+	if (len(df_store) > 0):
 		
 		nearest = alt.selection_point(on='mouseover', fields=['time', 'value'])
 		#selection = alt.selection_point(on='mouseover', fields=['time', 'value'])
@@ -201,7 +206,7 @@ for i in np.arange(0,101):
 			alt.Color('id:N').title("Robot ID").legend(orient="bottom"),
 			alt.value('lightgray')
 		)
-		base3 = alt.Chart(df1).mark_circle().encode(
+		base3 = alt.Chart(df_store).mark_circle().encode(
 			alt.X('time:Q'),
 			alt.Y('value:Q'),
 			color=color
@@ -240,8 +245,10 @@ for i in np.arange(0,101):
 		#	.encode(alt.Color("degree:N", legend=None)).interactive()
 		#	for order in degree_list
 		#]
-
-		num = alt.layer(base3, line, line2)#*polynomial_fit)
+		vrules = alt.Chart(df_store).mark_rule(color='gray').encode(
+			x="curtime:Q"
+		)
+		num = alt.layer(base3, line, line2, vrules)#*polynomial_fit)
 		#points = line.mark_point().encode(
     	#	opacity=alt.condition(nearest, alt.value(1), alt.value(0))
 		#)
@@ -262,6 +269,6 @@ for i in np.arange(0,101):
 		viz1.write(num)
 
 	# sleep 6 seconds
-	for t in np.arange(0,4):
-		status.write("Seconds to next hack: " + str(6-t))
+	for t in np.arange(0,6):
+		status.write("Time now: " + str(timenow) + ", Seconds to next hack: " + str(6-t))
 		time.sleep(1)
