@@ -34,7 +34,6 @@ with col2:
     st.subheader('Positive Productivity')
     viz7 = st.empty()
 
-
 # st.subheader('Identifying Robot Siblings')
 family = game.getTree()
 
@@ -72,46 +71,57 @@ except ValueError:
     # Handle the case where the input is not a valid integer
     pass
 
-viz6.pyplot(plt)
+viz6.pyplot(plt, clear_figure=True)
 
-
-
-# Create an empty placeholder for the visualization
-robots = game.getRobotInfo()
-    
-# Extracting robot productivity information
-robot_productivity = {}
-for index, row in robots.iterrows():
-    robot_id = row['id']
-    productivity = row['Productivity']
-    if not pd.isnull(robot_id) and not pd.isnull(productivity):
-        robot_productivity[robot_id] = productivity
-    
 # Assuming pos is not necessary or is predefined
 pos = nx.spring_layout(fam_net)
 
-# Draw the networkx graph with explicit node positions
-# Color nodes based on productivity
-node_colors = ['green' if robot_productivity.get(node) and robot_productivity[node] > 0 else 'skyblue' for node in fam_net.nodes]
-nx.draw_networkx(fam_net, pos=pos, with_labels=True,
+while True:
+    for t in range(6, 0, -1):
+        status.write("Seconds to next hack: " + str(t))
+        time.sleep(1)
+
+    # Reset the countdown after 6 seconds
+    status.write("Seconds to next hack: 6")
+    time.sleep(1)
+
+    # Update the positive productivity graph in real-time
+    robots = game.getRobotInfo()
+
+    # Extracting robot productivity information
+    robot_productivity = {}
+    for index, row in robots.iterrows():
+        robot_id = row['id']
+        productivity = row['Productivity']
+        if not pd.isnull(robot_id) and not pd.isnull(productivity):
+            robot_productivity[robot_id] = productivity
+
+    # Color nodes based on updated productivity
+    node_colors = ['green' if robot_productivity.get(node) and robot_productivity[node] > 0 else 'skyblue' for node in fam_net.nodes]
+
+    # Create a new figure
+    plt.figure()
+
+    # Draw the updated networkx graph with explicit node positions
+    nx.draw_networkx(fam_net, pos=pos, with_labels=True,
                     node_color=node_colors, node_size=500, font_size=10, font_color='black',
                     font_weight='bold', edge_color='gray', linewidths=0.5)
 
-# Highlight the searched node and its siblings if found
-try:
-    search_node_id = int(search_node)
-    if search_node_id in fam_net.nodes:
-        # Find siblings of the searched node
-        siblings = list(fam_net.neighbors(search_node_id))
+    # Highlight the searched node and its siblings if found
+    try:
+        search_node_id = int(search_node)
+        if search_node_id in fam_net.nodes:
+            # Find siblings of the searched node
+            siblings = list(fam_net.neighbors(search_node_id))
 
-        # Draw the searched node and its siblings in red
-        nx.draw_networkx_nodes(fam_net, pos=pos,
-                                nodelist=[search_node_id] + siblings, node_color='red', node_size=700,
-                                alpha=0.8)
-except ValueError:
-    # Handle the case where the input is not a valid integer
-    pass
+            # Draw the searched node and its siblings in red
+            nx.draw_networkx_nodes(fam_net, pos=pos,
+                                    nodelist=[search_node_id] + siblings, node_color='red', node_size=700,
+                                    alpha=0.8)
+    except ValueError:
+        # Handle the case where the input is not a valid integer
+        pass
 
-# Display the matplotlib plot using st.pyplot
-viz7.pyplot(plt)
-
+    # Display the matplotlib plot using st.pyplot
+    viz7.pyplot(plt, clear_figure=True)
+    st.markdown(f'<div hidden>{time.time()}</div>', unsafe_allow_html=True)

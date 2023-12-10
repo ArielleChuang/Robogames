@@ -114,6 +114,8 @@ df = []
 with col2:
 	st.subheader("Team Status")
 	team_table = st.table(df)
+	st.subheader("Productivity Table")
+	productivity_table = st.table(df)
 
 # wait for both players to be ready
 while(True):	
@@ -144,7 +146,7 @@ for i in np.arange(0,101):
 	df = pd.DataFrame(links, columns=['source', 'target'])
 	G = nx.from_pandas_edgelist(df, source='source', target='target')
 	nodes_list = list(G.nodes)
-	net = Network(notebook = True)
+	net = Network(neighborhood_highlight=True, notebook = True)
 
 	# identify winners - for color
 	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in G.nodes}
@@ -159,13 +161,25 @@ for i in np.arange(0,101):
 	friends_counts = pd.DataFrame(friends_counts)
 	normalized_counts = friends_counts['counts'] / friends_counts['counts'].max()
 	rounded_counts = (normalized_counts * 100).round().astype(int)
+	node_set = set()
 
 	# Add color abd size onto each node
-	for node in G.nodes:
-		source_matches = friends_counts[friends_counts['source'] == node]
+	#for node in G.nodes:
+	for edge in G.edges:	
+		source, target = edge
+		#print(str(node))
+		source_matches = friends_counts[friends_counts['source'] == source]
+		#print(source_matches)
 		if not source_matches.empty:
 			row = source_matches.iloc[0]
-			net.add_node(node, label=str(node), color=node_colors[node_winner_values[node]], size=int(rounded_counts[row.name]))
+			net.add_node(source, label=str(source), color=node_colors[node_winner_values[source]], size=int(rounded_counts[source]))
+			net.add_node(target, label=str(target), color=node_colors[node_winner_values[target]], size=int(rounded_counts[target]))
+			node_set.add(source)
+			#net.add_edge(source_matches['source'], source_matches['target'])
+	#for edge in G.edges:
+		#source, target = edge
+		#if source in node_set and target in node_set:
+			net.add_edge(source, target)
 	net.from_nx(G)
 
 	# save and read the network
@@ -267,6 +281,61 @@ for i in np.arange(0,101):
 
 		# write it to the screen
 		viz1.write(num)
+
+		## Productivity dataframe
+		part_hints=game.getAllPartHints()
+				
+		# # Put id, productivity, parts into {}s
+		df = pd.DataFrame()
+		for hint in part_hints:
+			column_name = hint['column']
+			id_value = hint['id']
+			value = hint['value']
+			initial_data = {'id': [], 'Productivity': []}
+		for col in df:
+			initial_data[col] = [0] * len(part_hints)
+		if id_value not in df.index:
+			new_row = pd.Series(name=id_value, dtype='object')
+		new_row[column_name] = value
+		df = pd.concat([df, new_row.to_frame().T])
+		df = df.reset_index().rename(columns={'index': 'id'})
+		D = pd.merge(robots[['id', 'Productivity']], df, on='id')
+		D.fillna(0, inplace=True)
+		new_df = pd.DataFrame()
+		try:
+			corr_S = D['Sonoreceptors'].corr(D['Productivity'])
+			corr_ATC = D['AutoTerrain Tread Count'].corr(D['Productivity'])
+			corr_IS = D['InfoCore Size'].corr(D['Productivity'])
+			corr_ABL = D['Astrogation Buffer Length'].corr(D['Productivity'])
+			corr_PS = D['Polarity Sinks'].corr(D['Productivity'])
+			corr_NM = pd.to_numeric(D['Nanochip Model'], errors='coerce').corr(D['Productivity'])
+			corr_APM = pd.to_numeric(D['Axial Piston Model'], errors='coerce').corr(D['Productivity'])
+			corr_CUB = D['Cranial Uplink Bandwidth'].corr(D['Productivity'])
+			corr_AVM = pd.to_numeric(D['Arakyd Vocabulator Model'], errors='coerce').corr(D['Productivity'])
+			corr_RMHP = D['Repulsorlift Motor HP'].corr(D['Productivity'])
+
+			correlation_dict = {
+				'Sonoreceptors': corr_S,
+				'AutoTerrain Tread Count': corr_ATC,
+				'InfoCore Size': corr_IS,
+				'Astrogation Buffer Length': corr_ABL,
+				'Polarity Sinks': corr_PS,
+				'Nanochip Model': corr_NM,
+				'Axial Piston Model': corr_APM,
+				'Cranial Uplink Bandwidth': corr_CUB,
+				'Arakyd Vocabulator Model': corr_AVM,
+				'Repulsorlift Motor HP': corr_RMHP
+			}
+
+			sorted_corr_columns = sorted(correlation_dict, key=correlation_dict.get, reverse=True)
+			max_1_column, max_2_column = sorted_corr_columns[0], sorted_corr_columns[1] if len(sorted_corr_columns) >= 2 else ()
+			new_df = D[['id', 'Productivity', max_1_column, max_2_column]]
+			new_df = new_df.sort_values(by=['Productivity'], ascending=False) 
+			productivity_table.write(new_df)   
+
+		except:
+			new_df = pd.DataFrame(data=["Not Enough Data"], columns=[""])
+			productivity_table.write(new_df) 
 
 	# sleep 6 seconds
 	for t in np.arange(0,6):
