@@ -19,4 +19,4 @@ from streamlit_echarts import st_echarts
 from pyecharts import options as opts   
 Given the game design, it may take time for color encodings to show on the family tree visualization or on the dynamic dataframe, since
 productivity is only shown after robots have declared a team. If you find errors or warnings in the dashboard upon running, please make sure your
-streamlit version is the most recent (ver 1.28)
+streamlit version is the most recent (ver 1.28.2)
