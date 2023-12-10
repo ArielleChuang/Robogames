@@ -144,7 +144,7 @@ for i in np.arange(0,101):
 	df = pd.DataFrame(links, columns=['source', 'target'])
 	G = nx.from_pandas_edgelist(df, source='source', target='target')
 	nodes_list = list(G.nodes)
-	net = Network(notebook = True)
+	net = Network(neighborhood_highlight=True, notebook = True)
 
 	# identify winners - for color
 	node_winner_values = {node: robots.loc[robots['id'] == node, 'winner'].values[0] for node in G.nodes}
@@ -159,13 +159,25 @@ for i in np.arange(0,101):
 	friends_counts = pd.DataFrame(friends_counts)
 	normalized_counts = friends_counts['counts'] / friends_counts['counts'].max()
 	rounded_counts = (normalized_counts * 100).round().astype(int)
+	node_set = set()
 
 	# Add color abd size onto each node
-	for node in G.nodes:
-		source_matches = friends_counts[friends_counts['source'] == node]
+	#for node in G.nodes:
+	for edge in G.edges:	
+		source, target = edge
+		#print(str(node))
+		source_matches = friends_counts[friends_counts['source'] == source]
+		#print(source_matches)
 		if not source_matches.empty:
 			row = source_matches.iloc[0]
-			net.add_node(node, label=str(node), color=node_colors[node_winner_values[node]], size=int(rounded_counts[row.name]))
+			net.add_node(source, label=str(source), color=node_colors[node_winner_values[source]], size=int(rounded_counts[source]))
+			net.add_node(target, label=str(target), color=node_colors[node_winner_values[target]], size=int(rounded_counts[target]))
+			node_set.add(source)
+			#net.add_edge(source_matches['source'], source_matches['target'])
+	#for edge in G.edges:
+		#source, target = edge
+		#if source in node_set and target in node_set:
+			net.add_edge(source, target)
 	net.from_nx(G)
 
 	# save and read the network
